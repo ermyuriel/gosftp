@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type SFTP struct {
+type Server struct {
 	client         *sftp.Client
 	host           string
 	port           int
@@ -19,8 +19,8 @@ type SFTP struct {
 	user, password string
 }
 
-func New(user, password, host, protocol, pathToKey string, port int) (*SFTP, error) {
-	sftp := &SFTP{user: user, password: password, protocol: protocol, port: port, host: host}
+func New(user, password, host, protocol, pathToKey string, port int) (*Server, error) {
+	sftp := &Server{user: user, password: password, protocol: protocol, port: port, host: host}
 	if pathToKey != "" {
 		if key, err := readKey(pathToKey); err == nil {
 			sftp.connectSSH(key)
@@ -28,7 +28,7 @@ func New(user, password, host, protocol, pathToKey string, port int) (*SFTP, err
 	}
 	return sftp, nil
 }
-func (s *SFTP) connectSSH(keyBuffer []byte) error {
+func (s *Server) connectSSH(keyBuffer []byte) error {
 	key, err := ssh.ParsePrivateKey(keyBuffer)
 	if err != nil {
 		return err
@@ -49,13 +49,13 @@ func (s *SFTP) connectSSH(keyBuffer []byte) error {
 func readKey(path string) ([]byte, error) {
 	return ioutil.ReadFile(path)
 }
-func (s *SFTP) GetFile(folderPath, fileName string) (*sftp.File, error) {
+func (s *Server) GetFile(folderPath, fileName string) (*sftp.File, error) {
 	return s.client.Open(path.Join(folderPath, fileName))
 }
-func (s *SFTP) DeleteFile(folderPath, fileName string) error {
+func (s *Server) DeleteFile(folderPath, fileName string) error {
 	return s.client.Remove(path.Join(folderPath, fileName))
 }
-func (s *SFTP) GetFiles(filesPath string) (map[string]*sftp.File, error) {
+func (s *Server) GetFiles(filesPath string) (map[string]*sftp.File, error) {
 	list, err := s.client.ReadDir(filesPath)
 	if err != nil {
 		return nil, err
