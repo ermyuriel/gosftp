@@ -21,18 +21,25 @@ type Server struct {
 
 func New(user, password, host, protocol, pathToKey string, port int) (*Server, error) {
 	sftp := &Server{user: user, password: password, protocol: protocol, port: port, host: host}
-	if pathToKey != "" {
-		if key, err := readKey(pathToKey); err == nil {
-			sftp.connectSSH(key)
-		}
+
+	err := sftp.connectSSH(pathToKey)
+	if err != nil {
+		return nil, err
 	}
+
 	return sftp, nil
 }
-func (s *Server) connectSSH(keyBuffer []byte) error {
+func (s *Server) connectSSH(keyPath string) error {
+
+	keyBuffer, err := ioutil.ReadFile(keyPath)
+	if err != nil {
+		return err
+	}
 	key, err := ssh.ParsePrivateKey(keyBuffer)
 	if err != nil {
 		return err
 	}
+
 	auths := []ssh.AuthMethod{ssh.PublicKeys(key)}
 	config := &ssh.ClientConfig{User: s.user, Auth: auths, HostKeyCallback: ssh.InsecureIgnoreHostKey(), HostKeyAlgorithms: []string{"ssh-dss"}}
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%v", s.host, s.port), config)
@@ -44,10 +51,8 @@ func (s *Server) connectSSH(keyBuffer []byte) error {
 		return err
 	}
 	s.client = client
+
 	return nil
-}
-func readKey(path string) ([]byte, error) {
-	return ioutil.ReadFile(path)
 }
 func (s *Server) GetFile(folderPath, fileName string) (*sftp.File, error) {
 	return s.client.Open(path.Join(folderPath, fileName))
